@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html class="h-100">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Lock auth0</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    />
+    
+  </head>
+
+  <body>
+    <div class="container">
+        <div class="nav-container">
+            <nav class="navbar navbar-expand-md navbar-light bg-light" >
+              <div class="container">            
+                <div class="collapse navbar-collapse" id="navbarNav">              
+                  <ul class="navbar-nav d-none d-md-block">
+                    <!-- Login button: show if NOT authenticated -->
+                    <li class="nav-item loginHtml" style="display:none">
+                      <button
+                        id="btn-login"
+                        class="btn btn-primary btn-margin auth-invisible hidden"
+                      >
+                        Log in
+                      </button>
+                    </li>                
+                  </ul>              
+                </div>
+              </div>          
+            </nav>
+          </div>             
+        </div>
+        <div class="profileHtml" style="display:none">
+          <img class="avatar" />
+          <h2>Welcome, <span class="nickname"></span></h2>
+          <button class="btn btn-primary btn-api" onclick="logout();">Logout</button>
+          <div>
+            <input type="text" name="changepwd" id="changepwd">
+            <button class="btn btn-primary" onclick="changepwd()">Change passwrod</button>
+          </div>
+        </div>
+    </div>
+    
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdn.auth0.com/js/lock/11.28.0/lock.min.js"></script>
+
+    <script>
+
+
+        var domain = 'dev-11k8rr7z.us.auth0.com';        
+        var clientId = 'MOivMIuGELhi4D5uuK59MlZgXc5mab55';
+
+        var options = {
+          theme: {
+            logo: 'https://i.pinimg.com/originals/5e/ac/44/5eac44ffb0e46c196109a50691337da8.jpg',
+            primaryColor: '#31324F'
+          }
+        };
+        
+        var globalPfofle = localStorage.getItem('profile') && JSON.parse(localStorage.getItem('profile'));
+        var globalToken = localStorage.getItem('token');     
+
+        const lock = new Auth0Lock(clientId, domain,options);
+
+        $(document).ready(function(){
+           
+            $('#btn-login').click(function(e) {
+              e.preventDefault();
+              lock.show();
+            });
+
+            if(!globalToken && !globalPfofle){
+              $('.loginHtml').show();
+              $('.profileHtml').hide();
+            }else{
+              showProfile(globalToken,globalPfofle)
+            }
+                        
+        });
+
+        function showProfile(globalToken,globalPfofle){
+            $('.loginHtml').hide();
+            $('.profileHtml').show();
+            $('.avatar').attr('src',globalPfofle.picture);
+            $('.nickname').text(globalPfofle.name);            
+        }
+
+        function logout(){
+          localStorage.removeItem("token");
+          localStorage.removeItem("profile");
+
+          
+          $.ajax({
+              type: "POST",
+              url: "https://localhost:3000/logout",    
+              headers: {
+              'authtoken': localStorage.getItem('token')
+              },
+              data: {},           
+              success: function(res) {
+                 console.log('client res=>',res);                            
+              },
+              error:function(request, status, error) {
+                  console.log("ajax call went wrong:" + request.responseText);
+              }
+          });
+                          
+          window.location.reload();
+        }
+
+        function changepwd(){
+          $.ajax({
+              type: "POST",
+              url: "https://localhost:3000/changepassword",    
+              headers: {
+              'authtoken': localStorage.getItem('token')
+              },
+              data: {email: $('#changepwd').val()},           
+              success: function(res) {
+                 console.log('client res=>',res);                            
+              },
+              error:function(request, status, error) {
+                  console.log("ajax call went wrong:" + request.responseText);
+              }
+          });
+        }
+
+        lock.on("authenticated", function(authResult) {
+          console.log(authResult);
+          $('.loginHtml').hide();
+          $('.profileHtml').show();         
+          lock.getUserInfo(authResult.accessToken, function(error, profileResult) {
+            if (error) {
+              // Handle error              
+              return alert(error);
+            }
+            globalToken = authResult.accessToken;
+            globalPfofle = profileResult;                        
+            localStorage.setItem('token',globalToken);
+            localStorage.setItem('profile',JSON.stringify(globalPfofle));  
+            showProfile(globalToken,globalPfofle);          
+            //console.log(profile);
+          });
+        });
+        
+        
+
+    </script>    
+  </body>
+</html>

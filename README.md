@@ -9,6 +9,9 @@ To specify the application client ID and domain, `auth_config.json`. Then open i
 }
 ```
 
+###make https by generating open ssl code and put your server.key and server.crt and replace it with given
+
+
 ### Installation
 
 After cloning the repository, run:
